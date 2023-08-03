@@ -27,20 +27,26 @@ contract Token {
 
         //Require sender to have enough tokens to spend
         require(balanceOf[msg.sender]>_value);
-        //Cant transfer to 0 address
-        require(_to != address(0));
-        //Deduct tokens from spender
-        balanceOf[msg.sender] = balanceOf[msg.sender] - _value;
-        //Credit tokens to receiver
-        balanceOf[_to] = balanceOf[_to] + _value;
-
-        //Emit Event
-        emit Transfer(msg.sender,_to,_value);
+        
+        _transfer(msg.sender, _to, _value);
 
         return true;
     }
 
-    function approve(address _spender, uint256 _value) public returns (bool sucess){
+    function _transfer(address _from, address _to, uint256 _value) internal {
+
+        //Cant transfer to 0 address
+        require(_to != address(0));
+        //Deduct tokens from spender
+        balanceOf[_from] = balanceOf[_from] - _value;
+        //Credit tokens to receiver
+        balanceOf[_to] = balanceOf[_to] + _value;
+
+        //Emit Event
+        emit Transfer(_from,_to,_value);
+    }
+
+    function approve(address _spender, uint256 _value) public returns (bool success){
         //Cant give permission to 0 address
         require(_spender != address(0));
         //Allow spender to spend value
@@ -50,6 +56,22 @@ contract Token {
         emit Approval(msg.sender, _spender, _value);
 
         return true;
+    }
+
+    function transferfrom(address _from, address _to, uint256 _value) public returns (bool success){
+
+        //Check Approval
+        require(_value <= balanceOf[_from]);
+        require(_value <= allowance[_from][msg.sender]);
+
+        //Reset Allowance
+        allowance[_from][msg.sender] = allowance[_from][msg.sender] - _value;
+
+        //Spend Tokens
+        _transfer(_from, _to, _value);
+
+        return true;
+
     }
 }
 

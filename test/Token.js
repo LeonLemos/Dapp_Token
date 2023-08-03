@@ -147,4 +147,49 @@ describe('Token',()=> {
 
         })
     })
+
+    describe ('Delegated token transfers',()=>{
+        let amount, transaction, result
+
+        beforeEach(async()=>{
+            amount = tokens(100)
+            //Transfer tokens
+            transaction = await token.connect(deployer).approve(exchange.address, amount)
+            result = await transaction.wait()
+        })
+
+        describe ('Success',()=>{
+            beforeEach(async()=>{
+                //Transfer tokens
+                transaction = await token.connect(exchange).transferfrom(deployer.address, receiver.address, amount)
+                result = await transaction.wait()
+            })
+            
+            it('Transfer token balances', async ()=>{
+                expect( await token.balanceOf(deployer.address)).to.be.equal(ethers.utils.parseUnits('999900','ether'))
+                expect( await token.balanceOf(receiver.address)).to.be.equal(amount)
+            })
+
+            it('Resets the allowance',async ()=>{
+                expect(await token.allowance(deployer.address, exchange.address)).to.be.equal(0)
+            })
+
+            it('Emits a transfer event', async()=>{
+                const event = result.events[0]
+                //console.log(event)
+                expect(event.event).to.equal("Transfer")
+    
+                const args = event.args
+                expect(args.from).to.equal(deployer.address)
+                expect(args.to).to.equal(receiver.address)
+                expect(args.value).to.equal(amount)
+            })
+        })
+
+        describe ('Failure',async ()=>{
+            //Attempt to send more than allowed tokens
+            const invalidAmount = tokens (1000000)
+            await expect(token.connect(exchange).transferfrom(deployer.address, receiver.address, invalidAmount)).to.be.reverted
+        })   
+    })
 })
